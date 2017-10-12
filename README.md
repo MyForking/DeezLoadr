@@ -10,6 +10,21 @@ Since I am also caught up with other things I can't work on this very often.
 Right now it is just a basic tool which I hope will be improved in the future, and be contributed to :sunglasses:
 
 
+#### Downloads
+
+[DeezLoadr-win-x64.exe](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x64.exe)
+
+[DeezLoadr-win-x86.exe](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x86.exe)
+
+[DeezLoadr-linux-x64](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-linux-x64)
+
+[DeezLoadr-linux-x86](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-linux-x86)
+
+[DeezLoadr-macos-x64](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-macos-x64)
+
+[DeezLoadr-macos-x86](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-macos-x86)
+
+
 #### Build Setup
 
 ```
