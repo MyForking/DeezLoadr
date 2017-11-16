@@ -12,9 +12,9 @@ Right now it is just a basic tool which I hope will be improved in the future, a
 
 #### Downloads
 
-[DeezLoadr-win-x64.exe](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x64.exe)
+[DeezLoadr-win-x64](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x64.exe)
 
-[DeezLoadr-win-x86.exe](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x86.exe)
+[DeezLoadr-win-x86](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x86.exe)
 
 [DeezLoadr-linux-x64](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-linux-x64)
 
@@ -35,7 +35,8 @@ npm install
 node app.js
 
 # Build the app
+npm install -g pkg (If you haven't installed it already)
 Execute the BUILD.cmd file ;)
 ```
 
-_Made with :heart: by [J05HI](https://github.com/J05HI) | Released under the GPLv3._
+_Made with :heart: by [J05HI](https://github.com/J05HI) | Proudly released under the GPLv3._

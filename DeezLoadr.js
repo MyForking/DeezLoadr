@@ -18,6 +18,17 @@ const http = require('http');
 const PARALLEL_SONGS = 1;
 const DOWNLOAD_DIR = 'DOWNLOADS/';
 
+let downloadTaskRunning = false;
+
+
+console.log('\x1b[36m**************************************\x1b[0m');
+console.log('\x1b[36m*\x1b[0m          \x1b[33mDeezLoadr v1.1.0\x1b[0m          \x1b[36m*\x1b[0m');
+console.log('\x1b[36m**************************************\x1b[0m');
+console.log('\x1b[36m*\x1b[0m https://github.com/J05HI/DeezLoadr \x1b[36m*\x1b[0m');
+console.log('\x1b[36m*\x1b[0m      Made with love by J05HI       \x1b[36m*\x1b[0m');
+console.log('\x1b[36m*\x1b[0m  Proudly released under the GPLv3  \x1b[36m*\x1b[0m');
+console.log('\x1b[36m**************************************\x1b[0m');
+
 
 askForNewDownload();
 
@@ -25,44 +36,46 @@ askForNewDownload();
  * Ask for a album, playlist or track link to start the download.
  */
 function askForNewDownload() {
-    let validator = function (deezerUrl) {
-        let deezerUrlType = getDeezerUrlTye(deezerUrl);
-        let allowedDeezerUrlTypes = [
-            'album',
-            'playlist',
-            'track'
-        ];
-        
-        
-        if (!allowedDeezerUrlTypes.includes(deezerUrlType)) {
-            throw new Error('Deezer URL example: http://www.deezer.com/album|playlist|track/0123456789');
-        }
-        
-        return deezerUrl;
-    };
-    
-    promptly.prompt('Deezer URL: ', {validator: validator, retry: false}, function (err, deezerUrl) {
-        if (err) {
-            console.error(err.message);
-            
-            return err.retry();
-        } else {
+    if (!downloadTaskRunning) {
+        let validator = function (deezerUrl) {
             let deezerUrlType = getDeezerUrlTye(deezerUrl);
-            let deezerUrlId = getDeezerUrlId(deezerUrl);
+            let allowedDeezerUrlTypes = [
+                'album',
+                'playlist',
+                'track'
+            ];
             
-            switch (deezerUrlType) {
-                case 'album':
-                    downloadMultiple('album', deezerUrlId);
-                    break;
-                case 'playlist':
-                    downloadMultiple('playlist', deezerUrlId);
-                    break;
-                case 'track':
-                    download(deezerUrlId);
-                    break;
+            if (!allowedDeezerUrlTypes.includes(deezerUrlType)) {
+                throw new Error('Deezer URL example: http://www.deezer.com/album|playlist|track/0123456789');
             }
-        }
-    });
+            
+            return deezerUrl;
+        };
+        
+        console.log('\n');
+        promptly.prompt('\x1b[33mDeezer URL:\x1b[0m ', {validator: validator, retry: false}, function (err, deezerUrl) {
+            if (err) {
+                console.error(err.message);
+                
+                return err.retry();
+            } else {
+                let deezerUrlType = getDeezerUrlTye(deezerUrl);
+                let deezerUrlId = getDeezerUrlId(deezerUrl);
+                
+                switch (deezerUrlType) {
+                    case 'album':
+                        downloadMultiple('album', deezerUrlId);
+                        break;
+                    case 'playlist':
+                        downloadMultiple('playlist', deezerUrlId);
+                        break;
+                    case 'track':
+                        downloadSingleTrack(deezerUrlId);
+                        break;
+                }
+            }
+        });
+    }
 }
 
 /**
@@ -74,8 +87,9 @@ function askForNewDownload() {
  */
 function getDeezerUrlTye(deezerUrl) {
     let urlQuery = url.parse(deezerUrl, true);
+    urlQuery = urlQuery.pathname.split('/');
     
-    return urlQuery.pathname.split('/')[1];
+    return urlQuery[urlQuery.length - 2];
 }
 
 /**
@@ -87,8 +101,9 @@ function getDeezerUrlTye(deezerUrl) {
  */
 function getDeezerUrlId(deezerUrl) {
     let urlQuery = url.parse(deezerUrl, true);
+    urlQuery = urlQuery.pathname.split('/');
     
-    return urlQuery.pathname.split('/')[2];
+    return urlQuery[urlQuery.length - 1];
 }
 
 /**
@@ -99,18 +114,22 @@ function getDeezerUrlId(deezerUrl) {
  */
 function downloadMultiple(type, id) {
     let url;
+    downloadTaskRunning = true;
+    
     if ('album' === type) {
         url = 'http://api.deezer.com/album/';
     } else {
         url = 'http://api.deezer.com/playlist/';
     }
+    
     request(format(url + '%d?limit=-1', id)).then((data) => {
         const jsonData = JSON.parse(data);
         Promise.map(jsonData.tracks.data, (track) => {
-            return download(track.id);
+            return downloadSingleTrack(track.id);
         }, {
             concurrency: PARALLEL_SONGS
         }).then(function () {
+            downloadTaskRunning = false;
         });
     });
 }
@@ -120,7 +139,7 @@ function downloadMultiple(type, id) {
  *
  * @param {Number} id
  */
-function download(id) {
+function downloadSingleTrack(id) {
     return request(format('http://www.deezer.com/track/%d', id)).then((htmlString) => {
         const PLAYER_INIT = htmlString.match(/track: ({.+}),/);
         const trackInfos = JSON.parse(PLAYER_INIT[1]).data[0];
@@ -149,7 +168,7 @@ function download(id) {
         
         const fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.mp3'; //Illegal characters
         
-        console.log('"' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE + '"  \x1b[31m[DOWNLOADING]\x1b[0m');
+        console.log('\x1b[31m[DOWNLOADING]\x1b[0m ' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
         const fileStream = fs.createWriteStream(fileName);
         return streamTrack(trackInfos, url, bfKey, fileStream);
     }).then((trackInfos) => {
@@ -270,16 +289,16 @@ function addId3Tags(trackInfos, filename) {
             }
             
             let tags = {
-                title: trackInfos.SNG_TITLE,
-                trackNumber: trackInfos.TRACK_NUMBER,
-                partOfSet: trackInfos.DISK_NUMBER,
-                artist: artists,
+                title:         trackInfos.SNG_TITLE,
+                trackNumber:   trackInfos.TRACK_NUMBER,
+                partOfSet:     trackInfos.DISK_NUMBER,
+                artist:        artists,
                 performerInfo: trackInfos.ART_NAME,
-                album: trackInfos.ALB_TITLE,
-                year: parseInt(trackInfos.PHYSICAL_RELEASE_DATE),
-                copyright: trackInfos.COPYRIGHT,
-                image: {
-                    mime: 'jpeg',
+                album:         trackInfos.ALB_TITLE,
+                year:          parseInt(trackInfos.PHYSICAL_RELEASE_DATE),
+                copyright:     trackInfos.COPYRIGHT,
+                image:         {
+                    mime:        'jpeg',
                     imageBuffer: coverBuffer
                 }
             };
@@ -288,8 +307,11 @@ function addId3Tags(trackInfos, filename) {
                 // Error writing tags
             }
             
-            console.log('"' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE + '"  \x1b[32m[DONE]\x1b[0m');
+            console.log('\x1b[32m[DONE]\x1b[0m        ' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
+            
+            askForNewDownload();
         });
     } catch (ex) {
+        askForNewDownload();
     }
 }
