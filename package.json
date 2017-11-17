@@ -10,6 +10,7 @@
         "bluebird":           "^3.5.0",
         "browser-id3-writer": "^4.0.0",
         "crypto":             "^1.0.1",
+        "inquirer":           "^4.0.0",
         "node-id3":           "^0.0.10",
         "nodebrainz":         "^2.1.1",
         "promptly":           "^2.2.0",

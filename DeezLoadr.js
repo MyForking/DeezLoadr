@@ -10,6 +10,7 @@ const Promise = require('bluebird');
 const request = require('request-promise');
 const nodeID3 = require('node-id3');
 const crypto = require('crypto');
+const inquirer = require('inquirer');
 const url = require('url');
 const format = require('util').format;
 const fs = require('fs');
@@ -18,19 +19,75 @@ const http = require('http');
 const PARALLEL_SONGS = 1;
 const DOWNLOAD_DIR = 'DOWNLOADS/';
 
+
+console.log('\x1b[36m╔════════════════════════════════════════════╗\x1b[0m');
+console.log('\x1b[36m║\x1b[0m              \x1b[33mDeezLoadr v1.1.0\x1b[0m              \x1b[36m║\x1b[0m');
+console.log('\x1b[36m╠════════════════════════════════════════════╣\x1b[0m');
+console.log('\x1b[36m║\x1b[0m     https://github.com/J05HI/DeezLoadr     \x1b[36m║\x1b[0m');
+console.log('\x1b[36m║\x1b[0m          Made with love by J05HI           \x1b[36m║\x1b[0m');
+console.log('\x1b[36m║\x1b[0m      Proudly released under the GPLv3      \x1b[36m║\x1b[0m');
+console.log('\x1b[36m╚════════════════════════════════════════════╝\x1b[0m\n');
+
+
+const musicQualities = {
+    MP3_128: {
+        id:   1,
+        name: 'MP3 - 128 kbps'
+    },
+    MP3_256: {
+        id:   5,
+        name: 'MP3 - 256 kbps'
+    },
+    MP3_320: {
+        id:   3,
+        name: 'MP3 - 320 kbps'
+    },
+    FLAC:    {
+        id:   9,
+        name: 'FLAC - 1411 kbps'
+    }
+};
+
+let selectedMusicQuality = musicQualities.MP3_320;
 let downloadTaskRunning = false;
 
 
-console.log('\x1b[36m**************************************\x1b[0m');
-console.log('\x1b[36m*\x1b[0m          \x1b[33mDeezLoadr v1.1.0\x1b[0m          \x1b[36m*\x1b[0m');
-console.log('\x1b[36m**************************************\x1b[0m');
-console.log('\x1b[36m*\x1b[0m https://github.com/J05HI/DeezLoadr \x1b[36m*\x1b[0m');
-console.log('\x1b[36m*\x1b[0m      Made with love by J05HI       \x1b[36m*\x1b[0m');
-console.log('\x1b[36m*\x1b[0m  Proudly released under the GPLv3  \x1b[36m*\x1b[0m');
-console.log('\x1b[36m**************************************\x1b[0m');
+selectMusicQuality();
 
 
-askForNewDownload();
+/**
+ * Show user selection for the music download quality.
+ */
+function selectMusicQuality() {
+    inquirer.prompt([
+        {
+            type:    'list',
+            name:    'musicQuality',
+            prefix:  '♫',
+            message: 'Select music quality:',
+            choices: [
+                'MP3  - 128  kbps',
+                'MP3  - 320  kbps',
+                'FLAC - 1411 kbps'
+            ],
+            default: 1
+        }
+    ]).then(function (answers) {
+        switch (answers.musicQuality) {
+            case 'MP3  - 128 kbps':
+                selectedMusicQuality = musicQualities.MP3_128;
+                break;
+            case 'MP3  - 320 kbps':
+                selectedMusicQuality = musicQualities.MP3_320;
+                break;
+            case 'FLAC - 1411 kbps':
+                selectedMusicQuality = musicQualities.FLAC;
+                break;
+        }
+        
+        askForNewDownload();
+    });
+}
 
 /**
  * Ask for a album, playlist or track link to start the download.
@@ -140,50 +197,64 @@ function downloadMultiple(type, id) {
  * @param {Number} id
  */
 function downloadSingleTrack(id) {
+    let fileName;
+    
     return request(format('http://www.deezer.com/track/%d', id)).then((htmlString) => {
         const PLAYER_INIT = htmlString.match(/track: ({.+}),/);
         const trackInfos = JSON.parse(PLAYER_INIT[1]).data[0];
         
-        const url = getTrackUrl(trackInfos);
-        const bfKey = getBlowfishKey(trackInfos);
-        
-        let albumPathName = trackInfos.ALB_TITLE.replace(/[^\w\-\s]+/g, '').replace(/\s+/g, ' ');
-        
-        if ('' === albumPathName.trim()) {
-            albumPathName = 'Unknown album';
-        }
-        
-        // todo: Improve download dir creation
-        if (!fs.existsSync(DOWNLOAD_DIR)) {
-            fs.mkdirSync(DOWNLOAD_DIR);
-        }
-        
-        if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
-            fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
-        }
-        
-        if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
-            fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
-        }
-        
-        const fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.mp3'; //Illegal characters
+        const trackQuality = getValidTrackQuality(trackInfos);
         
         console.log('\x1b[31m[DOWNLOADING]\x1b[0m ' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
-        const fileStream = fs.createWriteStream(fileName);
-        return streamTrack(trackInfos, url, bfKey, fileStream);
-    }).then((trackInfos) => {
-        let albumPathName = trackInfos.ALB_TITLE.replace(/[^\w\-\s]+/g, '').replace(/\s+/g, ' ');
         
-        if ('' === albumPathName.trim()) {
-            albumPathName = 'Unknown album';
+        if (trackQuality !== selectedMusicQuality) {
+            let selectedMusicQualityName = musicQualities[Object.keys(musicQualities).find(key => musicQualities[key] === selectedMusicQuality)].name;
+            let trackQualityName = musicQualities[Object.keys(musicQualities).find(key => musicQualities[key] === trackQuality)].name;
+            
+            console.log('              \x1b[31mThis track isn\'t available in "' + selectedMusicQualityName + '". Using "' + trackQualityName + '".\x1b[0m');
         }
         
-        const fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.mp3'; //Illegal characters
-        
+        if (trackQuality) {
+            const url = getTrackUrl(trackInfos, trackQuality.id);
+            const bfKey = getBlowfishKey(trackInfos);
+            
+            let albumPathName = trackInfos.ALB_TITLE.replace(/[^\w\-\s]+/g, '').replace(/\s+/g, ' ');
+            
+            if ('' === albumPathName.trim()) {
+                albumPathName = 'Unknown album';
+            }
+            
+            // todo: Improve download dir creation
+            if (!fs.existsSync(DOWNLOAD_DIR)) {
+                fs.mkdirSync(DOWNLOAD_DIR);
+            }
+            
+            if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
+                fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
+            }
+            
+            if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
+                fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
+            }
+            
+            let fileExtension = 'mp3';
+            
+            if (musicQualities.FLAC.id === trackQuality.id) {
+                fileExtension = 'flac';
+            }
+            
+            fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.' + fileExtension;
+            const fileStream = fs.createWriteStream(fileName);
+            
+            return streamTrack(trackInfos, url, bfKey, fileStream);
+        } else {
+            throw 'Song not available for download.';
+        }
+    }).then((trackInfos) => {
         addId3Tags(trackInfos, fileName);
     }).catch((err) => {
         if (404 === err.statusCode) {
-            console.error('Song not found -', err.options.uri);
+            console.error('Song not found - ', err.options.uri);
         } else {
             throw err;
         }
@@ -194,11 +265,13 @@ function downloadSingleTrack(id) {
  * Calculate the URL to download the track.
  *
  * @param {Array} trackInfos
+ * @param {Number} trackQuality
+ *
+ * @returns {String}
  */
-function getTrackUrl(trackInfos) {
-    const fileFormat = (trackInfos.FILESIZE_MP3_320) ? 3 : (trackInfos.FILESIZE_MP3_256) ? 5 : 1;
+function getTrackUrl(trackInfos, trackQuality) {
     
-    const step1 = [trackInfos.MD5_ORIGIN, fileFormat, trackInfos.SNG_ID, trackInfos.MEDIA_VERSION].join('¤');
+    const step1 = [trackInfos.MD5_ORIGIN, trackQuality, trackInfos.SNG_ID, trackInfos.MEDIA_VERSION].join('¤');
     
     let step2 = crypto.createHash('md5').update(step1, 'ascii').digest('hex') + '¤' + step1 + '¤';
     while (step2.length % 16 > 0) step2 += ' ';
@@ -207,6 +280,77 @@ function getTrackUrl(trackInfos) {
     const cdn = trackInfos.MD5_ORIGIN[0]; //random number between 0 and f
     
     return format('http://e-cdn-proxy-%s.deezer.com/mobile/1/%s', cdn, step3);
+}
+
+/**
+ * Get a downloadable track quality.
+ *
+ * @param {Array} trackInfos
+ *
+ * @returns {Number|Boolean}
+ */
+function getValidTrackQuality(trackInfos) {
+    if (musicQualities.FLAC === selectedMusicQuality) {
+        if ('undefined' === typeof trackInfos.FILESIZE_FLAC || 0 === trackInfos.FILESIZE_FLAC) {
+            if ('undefined' === typeof trackInfos.FILESIZE_MP3_320 || 0 === trackInfos.FILESIZE_MP3_320) {
+                if ('undefined' === typeof trackInfos.FILESIZE_MP3_256 || 0 === trackInfos.FILESIZE_MP3_256) {
+                    if ('undefined' === typeof trackInfos.FILESIZE_MP3_128 || 0 === trackInfos.FILESIZE_MP3_128) {
+                        return false;
+                    }
+                    
+                    return musicQualities.MP3_128;
+                }
+                
+                return musicQualities.MP3_256;
+            }
+            
+            return musicQualities.MP3_320;
+        }
+        
+        return musicQualities.FLAC;
+    }
+    
+    if (musicQualities.MP3_320 === selectedMusicQuality) {
+        if ('undefined' === typeof trackInfos.FILESIZE_MP3_320 || 0 === trackInfos.FILESIZE_MP3_320) {
+            if ('undefined' === typeof trackInfos.FILESIZE_MP3_256 || 0 === trackInfos.FILESIZE_MP3_256) {
+                if ('undefined' === typeof trackInfos.FILESIZE_MP3_128 || 0 === trackInfos.FILESIZE_MP3_128) {
+                    if ('undefined' === typeof trackInfos.FILESIZE_FLAC || 0 === trackInfos.FILESIZE_FLAC) {
+                        return false;
+                    }
+                    
+                    return musicQualities.FLAC;
+                }
+                
+                return musicQualities.MP3_128;
+            }
+            
+            return musicQualities.MP3_256;
+        }
+        
+        return musicQualities.MP3_320;
+    }
+    
+    if (musicQualities.MP3_128 === selectedMusicQuality) {
+        if ('undefined' === typeof trackInfos.FILESIZE_MP3_128 || 0 === trackInfos.FILESIZE_MP3_128) {
+            if ('undefined' === typeof trackInfos.FILESIZE_MP3_256 || 0 === trackInfos.FILESIZE_MP3_256) {
+                if ('undefined' === typeof trackInfos.FILESIZE_MP3_320 || 0 === trackInfos.FILESIZE_MP3_320) {
+                    if ('undefined' === typeof trackInfos.FILESIZE_FLAC || 0 === trackInfos.FILESIZE_FLAC) {
+                        return false;
+                    }
+                    
+                    return musicQualities.FLAC;
+                }
+                
+                return musicQualities.MP3_320;
+            }
+            
+            return musicQualities.MP3_256;
+        }
+        
+        return musicQualities.MP3_128;
+    }
+    
+    return false;
 }
 
 /**
@@ -236,7 +380,7 @@ function getBlowfishKey(trackInfos) {
  * @param stream
  */
 function streamTrack(trackInfos, url, bfKey, stream) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         http.get(url, function (response) {
             let i = 0;
             let percent = 0;
