@@ -6,6 +6,7 @@
  */
 
 const chalk = require('chalk');
+const ora = require('ora');
 const Promise = require('bluebird');
 const request = require('request-promise');
 const nodeID3 = require('node-id3');
@@ -16,7 +17,6 @@ const format = require('util').format;
 const fs = require('fs');
 const http = require('http');
 
-const PARALLEL_SONGS = 1;
 const DOWNLOAD_DIR = 'DOWNLOADS/';
 
 
@@ -30,7 +30,7 @@ console.log(chalk.cyan('╠═════════════════�
 console.log(chalk.cyan('║') + chalk.redBright(' ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ') + chalk.cyan('║'));
 console.log(chalk.cyan('║') + '      PayPal:  https://paypal.me/J05HI      ' + chalk.cyan('║'));
 console.log(chalk.cyan('║') + '  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  ' + chalk.cyan('║'));
-console.log(chalk.cyan('╚════════════════════════════════════════════╝'));
+console.log(chalk.cyan('╚════════════════════════════════════════════╝\n'));
 
 
 const musicQualities = {
@@ -54,6 +54,17 @@ const musicQualities = {
 
 let selectedMusicQuality = musicQualities.MP3_320;
 let downloadTaskRunning = false;
+
+const downloadSpinner = new ora({
+    spinner: {
+        interval: 400,
+        frames:   [
+            '♫',
+            ' '
+        ]
+    },
+    color:   'white'
+});
 
 
 selectMusicQuality();
@@ -193,7 +204,7 @@ function downloadMultiple(type, id) {
         Promise.map(jsonData.tracks.data, (track) => {
             return downloadSingleTrack(track.id);
         }, {
-            concurrency: PARALLEL_SONGS
+            concurrency: 1
         }).then(function () {
             downloadTaskRunning = false;
         });
@@ -211,10 +222,10 @@ function downloadSingleTrack(id) {
     return request(format('http://www.deezer.com/track/%d', id)).then((htmlString) => {
         const PLAYER_INIT = htmlString.match(/track: ({.+}),/);
         const trackInfos = JSON.parse(PLAYER_INIT[1]).data[0];
-        
         const trackQuality = getValidTrackQuality(trackInfos);
         
-        console.log(chalk.red('[DOWNLOADING] ') + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
+        downloadSpinner.text = 'Downloading "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"';
+        downloadSpinner.start();
         
         if (trackQuality !== selectedMusicQuality) {
             let selectedMusicQualityName = musicQualities[Object.keys(musicQualities).find(key => musicQualities[key] === selectedMusicQuality)].name;
@@ -460,7 +471,8 @@ function addId3Tags(trackInfos, filename) {
                 // Error writing tags
             }
             
-            console.log(chalk.green('[DONE]        ') + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
+            downloadSpinner.text = 'Downloaded "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"';
+            downloadSpinner.succeed();
             
             askForNewDownload();
         });
