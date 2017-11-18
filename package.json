@@ -9,6 +9,7 @@
     "dependencies": {
         "bluebird":           "^3.5.1",
         "browser-id3-writer": "^4.0.0",
+        "chalk":              "^2.3.0",
         "crypto":             "^1.0.1",
         "inquirer":           "^4.0.0",
         "node-id3":           "^0.0.10",

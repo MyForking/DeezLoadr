@@ -5,6 +5,7 @@
  * Feel free to contribute!
  */
 
+const chalk = require('chalk');
 const Promise = require('bluebird');
 const request = require('request-promise');
 const nodeID3 = require('node-id3');
@@ -19,17 +20,17 @@ const PARALLEL_SONGS = 1;
 const DOWNLOAD_DIR = 'DOWNLOADS/';
 
 
-console.log('\x1b[36m╔════════════════════════════════════════════╗\x1b[0m');
-console.log('\x1b[36m║\x1b[0m              \x1b[33mDeezLoadr v1.1.0\x1b[0m              \x1b[36m║\x1b[0m');
-console.log('\x1b[36m╠════════════════════════════════════════════╣\x1b[0m');
-console.log('\x1b[36m║\x1b[0m          Made with love by J05HI           \x1b[36m║\x1b[0m');
-console.log('\x1b[36m║\x1b[0m      Proudly released under the GPLv3      \x1b[36m║\x1b[0m');
-console.log('\x1b[36m║\x1b[0m     https://github.com/J05HI/DeezLoadr     \x1b[36m║\x1b[0m');
-console.log('\x1b[36m╠════════════════════════════════════════════╣\x1b[0m');
-console.log('\x1b[36m║\x1b[0m ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ \x1b[36m║\x1b[0m');
-console.log('\x1b[36m║\x1b[0m      PayPal:  https://paypal.me/J05HI      \x1b[36m║\x1b[0m');
-console.log('\x1b[36m║\x1b[0m  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  \x1b[36m║\x1b[0m');
-console.log('\x1b[36m╚════════════════════════════════════════════╝\x1b[0m\n');
+console.log(chalk.cyan('╔════════════════════════════════════════════╗'));
+console.log(chalk.cyan('║') + chalk.bold.yellow('              DeezLoadr v1.1.0              ') + chalk.cyan('║'));
+console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
+console.log(chalk.cyan('║') + '          Made with love by J05HI           ' + chalk.cyan('║'));
+console.log(chalk.cyan('║') + '      Proudly released under the GPLv3      ' + chalk.cyan('║'));
+console.log(chalk.cyan('║') + '     https://github.com/J05HI/DeezLoadr     ' + chalk.cyan('║'));
+console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
+console.log(chalk.cyan('║') + chalk.redBright(' ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ') + chalk.cyan('║'));
+console.log(chalk.cyan('║') + '      PayPal:  https://paypal.me/J05HI      ' + chalk.cyan('║'));
+console.log(chalk.cyan('║') + '  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  ' + chalk.cyan('║'));
+console.log(chalk.cyan('╚════════════════════════════════════════════╝'));
 
 
 const musicQualities = {
@@ -213,18 +214,17 @@ function downloadSingleTrack(id) {
         
         const trackQuality = getValidTrackQuality(trackInfos);
         
-        console.log('\x1b[31m[DOWNLOADING]\x1b[0m ' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
+        console.log(chalk.red('[DOWNLOADING] ') + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
         
         if (trackQuality !== selectedMusicQuality) {
             let selectedMusicQualityName = musicQualities[Object.keys(musicQualities).find(key => musicQualities[key] === selectedMusicQuality)].name;
             let trackQualityName = musicQualities[Object.keys(musicQualities).find(key => musicQualities[key] === trackQuality)].name;
             
-            console.log('              \x1b[31mThis track isn\'t available in "' + selectedMusicQualityName + '". Using "' + trackQualityName + '".\x1b[0m');
+            console.log(chalk.red('              This track isn\'t available in "' + selectedMusicQualityName + '". Using "' + trackQualityName + '".'));
         }
         
         if (trackQuality) {
             const url = getTrackUrl(trackInfos, trackQuality.id);
-            const bfKey = getBlowfishKey(trackInfos);
             
             let albumPathName = trackInfos.ALB_TITLE.replace(/[^\w\-\s]+/g, '').replace(/\s+/g, ' ');
             
@@ -254,7 +254,7 @@ function downloadSingleTrack(id) {
             fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.' + fileExtension;
             const fileStream = fs.createWriteStream(fileName);
             
-            return streamTrack(trackInfos, url, bfKey, fileStream);
+            return streamTrack(trackInfos, url, fileStream);
         } else {
             throw 'Song not available for download.';
         }
@@ -384,15 +384,16 @@ function getBlowfishKey(trackInfos) {
  *
  * @param {Array} trackInfos
  * @param {String} url
- * @param {String} bfKey
  * @param stream
  */
-function streamTrack(trackInfos, url, bfKey, stream) {
+function streamTrack(trackInfos, url, stream) {
     return new Promise((resolve) => {
         http.get(url, function (response) {
             let i = 0;
             let percent = 0;
             response.on('readable', () => {
+                const bfKey = getBlowfishKey(trackInfos);
+                
                 let chunk;
                 while (chunk = response.read(2048)) {
                     if (100 * 2048 * i / response.headers['content-length'] >= percent + 1) {
@@ -459,7 +460,7 @@ function addId3Tags(trackInfos, filename) {
                 // Error writing tags
             }
             
-            console.log('\x1b[32m[DONE]\x1b[0m        ' + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
+            console.log(chalk.green('[DONE]        ') + trackInfos.ART_NAME, '-', trackInfos.SNG_TITLE);
             
             askForNewDownload();
         });
