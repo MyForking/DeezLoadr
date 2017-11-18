@@ -10,7 +10,7 @@ Since I am also caught up with other things I can't work on this very often.
 Right now it is just a basic tool which I hope will be improved in the future, and be contributed to :sunglasses:
 
 
-#### Downloads
+### Downloads
 
 [DeezLoadr-win-x64](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-win-x64.exe)
 
@@ -25,7 +25,7 @@ Right now it is just a basic tool which I hope will be improved in the future, a
 [DeezLoadr-macos-x86](https://github.com/J05HI/DeezLoadr/raw/master/BUILD/DeezLoadr-macos-x86)
 
 
-#### Build Setup
+### Build Setup
 
 ```
 # Install dependencies
@@ -38,5 +38,15 @@ node app.js
 npm install -g pkg (If you haven't installed it already)
 Execute the BUILD.cmd file ;)
 ```
+
+
+### Donate
+
+PayPal: [https://paypal.me/J05HI](https://paypal.me/J05HI)
+
+BTC: 18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi
+
+
+---
 
 _Made with :heart: by [J05HI](https://github.com/J05HI) | Proudly released under the GPLv3._

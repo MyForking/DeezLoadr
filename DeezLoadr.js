@@ -23,9 +23,13 @@ const DOWNLOAD_DIR = 'DOWNLOADS/';
 console.log('\x1b[36m╔════════════════════════════════════════════╗\x1b[0m');
 console.log('\x1b[36m║\x1b[0m              \x1b[33mDeezLoadr v1.1.0\x1b[0m              \x1b[36m║\x1b[0m');
 console.log('\x1b[36m╠════════════════════════════════════════════╣\x1b[0m');
-console.log('\x1b[36m║\x1b[0m     https://github.com/J05HI/DeezLoadr     \x1b[36m║\x1b[0m');
 console.log('\x1b[36m║\x1b[0m          Made with love by J05HI           \x1b[36m║\x1b[0m');
 console.log('\x1b[36m║\x1b[0m      Proudly released under the GPLv3      \x1b[36m║\x1b[0m');
+console.log('\x1b[36m║\x1b[0m     https://github.com/J05HI/DeezLoadr     \x1b[36m║\x1b[0m');
+console.log('\x1b[36m╠════════════════════════════════════════════╣\x1b[0m');
+console.log('\x1b[36m║\x1b[0m ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ \x1b[36m║\x1b[0m');
+console.log('\x1b[36m║\x1b[0m      PayPal:  https://paypal.me/J05HI      \x1b[36m║\x1b[0m');
+console.log('\x1b[36m║\x1b[0m  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  \x1b[36m║\x1b[0m');
 console.log('\x1b[36m╚════════════════════════════════════════════╝\x1b[0m\n');
 
 
