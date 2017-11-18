@@ -1,22 +1,20 @@
 {
-    "name":            "DeezLoadr",
-    "version":         "1.1.0",
-    "description":     "A deezer music downloader.",
-    "author":          "J05HI",
-    "repository":      "https://github.com/J05HI/DeezLoadr",
-    "license":         "GPL-3.0",
-    "main":            "DeezLoadr.js",
-    "dependencies":    {
-        "bluebird":           "^3.5.0",
+    "name":         "DeezLoadr",
+    "version":      "1.1.0",
+    "description":  "A deezer music downloader.",
+    "author":       "J05HI",
+    "repository":   "https://github.com/J05HI/DeezLoadr",
+    "license":      "GPL-3.0",
+    "main":         "DeezLoadr.js",
+    "dependencies": {
+        "bluebird":           "^3.5.1",
         "browser-id3-writer": "^4.0.0",
         "crypto":             "^1.0.1",
         "inquirer":           "^4.0.0",
         "node-id3":           "^0.0.10",
         "nodebrainz":         "^2.1.1",
-        "promptly":           "^2.2.0",
-        "request":            "^2.82.0",
+        "request":            "^2.83.0",
         "request-promise":    "^4.2.2",
         "util":               "^0.10.3"
-    },
-    "devDependencies": {}
+    }
 }

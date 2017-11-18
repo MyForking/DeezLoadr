@@ -5,7 +5,6 @@
  * Feel free to contribute!
  */
 
-const promptly = require('promptly');
 const Promise = require('bluebird');
 const request = require('request-promise');
 const nodeID3 = require('node-id3');
@@ -98,42 +97,47 @@ function selectMusicQuality() {
  */
 function askForNewDownload() {
     if (!downloadTaskRunning) {
-        let validator = function (deezerUrl) {
-            let deezerUrlType = getDeezerUrlTye(deezerUrl);
-            let allowedDeezerUrlTypes = [
-                'album',
-                'playlist',
-                'track'
-            ];
-            
-            if (!allowedDeezerUrlTypes.includes(deezerUrlType)) {
-                throw new Error('Deezer URL example: http://www.deezer.com/album|playlist|track/0123456789');
-            }
-            
-            return deezerUrl;
-        };
-        
         console.log('\n');
-        promptly.prompt('\x1b[33mDeezer URL:\x1b[0m ', {validator: validator, retry: false}, function (err, deezerUrl) {
-            if (err) {
-                console.error(err.message);
-                
-                return err.retry();
-            } else {
-                let deezerUrlType = getDeezerUrlTye(deezerUrl);
-                let deezerUrlId = getDeezerUrlId(deezerUrl);
-                
-                switch (deezerUrlType) {
-                    case 'album':
-                        downloadMultiple('album', deezerUrlId);
-                        break;
-                    case 'playlist':
-                        downloadMultiple('playlist', deezerUrlId);
-                        break;
-                    case 'track':
-                        downloadSingleTrack(deezerUrlId);
-                        break;
+        
+        let questions = [
+            {
+                type:     'input',
+                name:     'deezerUrl',
+                prefix:   '♫',
+                message:  'Deezer URL:',
+                validate: function (deezerUrl) {
+                    if (deezerUrl) {
+                        let deezerUrlType = getDeezerUrlTye(deezerUrl);
+                        let allowedDeezerUrlTypes = [
+                            'album',
+                            'playlist',
+                            'track'
+                        ];
+                        
+                        if (allowedDeezerUrlTypes.includes(deezerUrlType)) {
+                            return true;
+                        }
+                    }
+                    
+                    return 'Deezer URL example: http://www.deezer.com/album|playlist|track/0123456789';
                 }
+            }
+        ];
+        
+        inquirer.prompt(questions).then(answers => {
+            let deezerUrlType = getDeezerUrlTye(answers.deezerUrl);
+            let deezerUrlId = getDeezerUrlId(answers.deezerUrl);
+            
+            switch (deezerUrlType) {
+                case 'album':
+                    downloadMultiple('album', deezerUrlId);
+                    break;
+                case 'playlist':
+                    downloadMultiple('playlist', deezerUrlId);
+                    break;
+                case 'track':
+                    downloadSingleTrack(deezerUrlId);
+                    break;
             }
         });
     }
