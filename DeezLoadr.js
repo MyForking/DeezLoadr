@@ -174,13 +174,16 @@ function getDeezerUrlTye(deezerUrl) {
  *
  * @param {String} deezerUrl
  *
- * @return {String}
+ * @return {Number}
  */
 function getDeezerUrlId(deezerUrl) {
     let urlQuery = url.parse(deezerUrl, true);
     urlQuery = urlQuery.pathname.split('/');
     
-    return urlQuery[urlQuery.length - 1];
+    let lastUrlPiece = urlQuery[urlQuery.length - 1];
+    lastUrlPiece = lastUrlPiece.split('?');
+    
+    return parseInt(lastUrlPiece[0]);
 }
 
 /**
