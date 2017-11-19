@@ -7,6 +7,7 @@
 
 const chalk = require('chalk');
 const ora = require('ora');
+const sanitize = require('sanitize-filename');
 const Promise = require('bluebird');
 const request = require('request-promise');
 const nodeID3 = require('node-id3');
@@ -240,10 +241,16 @@ function downloadSingleTrack(id) {
         if (trackQuality) {
             const url = getTrackUrl(trackInfos, trackQuality.id);
             
-            let albumPathName = trackInfos.ALB_TITLE.replace(/[^\w\-\s]+/g, '').replace(/\s+/g, ' ');
+            let artistName = multipleWhitespacesToSingle(sanitize(trackInfos.ART_NAME));
             
-            if ('' === albumPathName.trim()) {
-                albumPathName = 'Unknown album';
+            if ('' === artistName.trim()) {
+                artistName = 'Unknown artist';
+            }
+            
+            let albumName = multipleWhitespacesToSingle(sanitize(trackInfos.ALB_TITLE));
+            
+            if ('' === albumName.trim()) {
+                albumName = 'Unknown album';
             }
             
             // todo: Improve download dir creation
@@ -251,12 +258,12 @@ function downloadSingleTrack(id) {
                 fs.mkdirSync(DOWNLOAD_DIR);
             }
             
-            if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
-                fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
+            if (!fs.existsSync(DOWNLOAD_DIR + '/' + artistName)) {
+                fs.mkdirSync(DOWNLOAD_DIR + '/' + artistName);
             }
             
-            if (!fs.existsSync(DOWNLOAD_DIR + '/' + albumPathName)) {
-                fs.mkdirSync(DOWNLOAD_DIR + '/' + albumPathName);
+            if (!fs.existsSync(DOWNLOAD_DIR + '/' + artistName + '/' + albumName)) {
+                fs.mkdirSync(DOWNLOAD_DIR + '/' + artistName + '/' + albumName);
             }
             
             let fileExtension = 'mp3';
@@ -265,7 +272,7 @@ function downloadSingleTrack(id) {
                 fileExtension = 'flac';
             }
             
-            fileName = DOWNLOAD_DIR + '/' + albumPathName + '/' + format('%s - %s', trackInfos.ART_NAME, trackInfos.SNG_TITLE).replace(/[^\w\-\s]+/g, '') + '.' + fileExtension;
+            fileName = DOWNLOAD_DIR + '/' + artistName + '/' + albumName + '/' + multipleWhitespacesToSingle(sanitize(toTwoDigits(trackInfos.TRACK_NUMBER) + ' ' + trackInfos.SNG_TITLE)) + '.' + fileExtension;
             const fileStream = fs.createWriteStream(fileName);
             
             return streamTrack(trackInfos, url, fileStream);
@@ -281,6 +288,26 @@ function downloadSingleTrack(id) {
             throw err;
         }
     });
+}
+
+/**
+ * Adds a zero to the beginning if the number has only one digit.
+ *
+ * @param {String} number
+ * @returns {String}
+ */
+function toTwoDigits(number) {
+    return (number < 10 ? '0' : '') + number;
+}
+
+/**
+ * Replaces multiple whitespaces with a single one.
+ *
+ * @param {String} string
+ * @returns {String}
+ */
+function multipleWhitespacesToSingle(string) {
+    return string.replace(/[ _,]+/g, ' ');
 }
 
 /**
