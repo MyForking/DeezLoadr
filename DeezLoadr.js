@@ -15,24 +15,11 @@ const crypto = require('crypto');
 const inquirer = require('inquirer');
 const url = require('url');
 const format = require('util').format;
-const fs = require('fs');
+const fs = require('fs-extra');
 const http = require('http');
+const https = require('https');
 
 const DOWNLOAD_DIR = 'DOWNLOADS/';
-
-
-console.log(chalk.cyan('╔════════════════════════════════════════════╗'));
-console.log(chalk.cyan('║') + chalk.bold.yellow('              DeezLoadr v1.1.0              ') + chalk.cyan('║'));
-console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
-console.log(chalk.cyan('║') + '          Made with love by J05HI           ' + chalk.cyan('║'));
-console.log(chalk.cyan('║') + '      Proudly released under the GPLv3      ' + chalk.cyan('║'));
-console.log(chalk.cyan('║') + '     https://github.com/J05HI/DeezLoadr     ' + chalk.cyan('║'));
-console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
-console.log(chalk.cyan('║') + chalk.redBright(' ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ') + chalk.cyan('║'));
-console.log(chalk.cyan('║') + '      PayPal:  https://paypal.me/J05HI      ' + chalk.cyan('║'));
-console.log(chalk.cyan('║') + '  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  ' + chalk.cyan('║'));
-console.log(chalk.cyan('╚════════════════════════════════════════════╝\n'));
-
 
 const musicQualities = {
     MP3_128: {
@@ -68,8 +55,51 @@ const downloadSpinner = new ora({
 });
 
 
-selectMusicQuality();
-
+/**
+ * Application init.
+ */
+(function initApp() {
+    // Prevent closing the application instantly
+    process.stdin.resume();
+    
+    /**
+     * The handler which will be executed before closing the application.
+     */
+    function exitHandler() {
+        fs.removeSync(DOWNLOAD_DIR + 'tempAlbumCovers');
+        
+        process.exit();
+    }
+    
+    // Do something when app is closing
+    process.on('exit', exitHandler.bind(null, {}));
+    
+    // Catches ctrl+c event
+    process.on('SIGINT', exitHandler.bind(null, {}));
+    
+    // Catches "kill pid"
+    process.on('SIGUSR1', exitHandler.bind(null, {}));
+    process.on('SIGUSR2', exitHandler.bind(null, {}));
+    
+    // Catches uncaught exceptions
+    process.on('uncaughtException', exitHandler.bind(null, {}));
+    
+    
+    // App info
+    console.log(chalk.cyan('╔════════════════════════════════════════════╗'));
+    console.log(chalk.cyan('║') + chalk.bold.yellow('              DeezLoadr v1.1.0              ') + chalk.cyan('║'));
+    console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
+    console.log(chalk.cyan('║') + '          Made with love by J05HI           ' + chalk.cyan('║'));
+    console.log(chalk.cyan('║') + '      Proudly released under the GPLv3      ' + chalk.cyan('║'));
+    console.log(chalk.cyan('║') + '     https://github.com/J05HI/DeezLoadr     ' + chalk.cyan('║'));
+    console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
+    console.log(chalk.cyan('║') + chalk.redBright(' ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ DONATE ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ♥ ') + chalk.cyan('║'));
+    console.log(chalk.cyan('║') + '      PayPal:  https://paypal.me/J05HI      ' + chalk.cyan('║'));
+    console.log(chalk.cyan('║') + '  BTC:  18JFjbdSDNQF69LNCJh8mhfoqRBTJuobCi  ' + chalk.cyan('║'));
+    console.log(chalk.cyan('╚════════════════════════════════════════════╝\n'));
+    
+    selectMusicQuality();
+})();
 
 /**
  * Show user selection for the music download quality.
@@ -138,6 +168,8 @@ function askForNewDownload() {
         ];
         
         inquirer.prompt(questions).then(answers => {
+            console.log('');
+            
             let deezerUrlType = getDeezerUrlTye(answers.deezerUrl);
             let deezerUrlId = getDeezerUrlId(answers.deezerUrl);
             
@@ -227,6 +259,10 @@ function downloadSingleTrack(id) {
         const PLAYER_INIT = htmlString.match(/track: ({.+}),/);
         const trackInfos = JSON.parse(PLAYER_INIT[1]).data[0];
         const trackQuality = getValidTrackQuality(trackInfos);
+        
+        if (trackInfos.VERSION) {
+            trackInfos.SNG_TITLE += ' ' + trackInfos.VERSION;
+        }
         
         downloadSpinner.text = 'Downloading "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"';
         downloadSpinner.start();
@@ -326,9 +362,27 @@ function getTrackUrl(trackInfos, trackQuality) {
     while (step2.length % 16 > 0) step2 += ' ';
     
     const step3 = crypto.createCipheriv('aes-128-ecb', 'jo6aey6haid2Teih', '').update(step2, 'ascii', 'hex');
-    const cdn = trackInfos.MD5_ORIGIN[0]; //random number between 0 and f
+    const cdn = generateRandomHexString(1);
     
-    return format('http://e-cdn-proxy-%s.deezer.com/mobile/1/%s', cdn, step3);
+    return 'http://e-cdn-proxy-' + cdn + '.deezer.com/mobile/1/' + step3;
+}
+
+/**
+ * Generate a string with hex characters only.
+ *
+ * @param {Number} stringLength
+ *
+ * @returns {string}
+ */
+function generateRandomHexString(stringLength) {
+    let randomString = '';
+    let possible = '0123456789abcdef';
+    
+    for (let i = 0; i < stringLength; i++) {
+        randomString += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    
+    return randomString;
 }
 
 /**
@@ -468,45 +522,81 @@ function streamTrack(trackInfos, url, stream) {
  * @param {String} filename
  */
 function addId3Tags(trackInfos, filename) {
-    const coverUrl = format('http://e-cdn-images.deezer.com/images/cover/%s/500x500.jpg', trackInfos.ALB_PICTURE);
+    // todo: OLD URL! (remove it if the new one is 100% working)
+    // const albumCoverUrl = 'http://e-cdn-images.deezer.com/images/cover/' + trackInfos.ALB_PICTURE + '/500x500.jpg';
+    
+    const albumCoverUrl = 'https://e-cdns-images.dzcdn.net/images/cover/' + trackInfos.ALB_PICTURE + '/500x500.jpg';
     
     try {
-        return request({url: coverUrl, encoding: null}).then((coverBuffer) => {
-            let artists;
-            
-            if (trackInfos.SNG_CONTRIBUTORS.featuring) {
-                artists = trackInfos.SNG_CONTRIBUTORS.featuring;
-            } else if (trackInfos.SNG_CONTRIBUTORS.mainartist) {
-                artists = trackInfos.SNG_CONTRIBUTORS.mainartist;
-            } else {
-                artists = [trackInfos.ART_NAME];
-            }
-            
-            let tags = {
-                title:         trackInfos.SNG_TITLE,
-                trackNumber:   trackInfos.TRACK_NUMBER,
-                partOfSet:     trackInfos.DISK_NUMBER,
-                artist:        artists,
-                performerInfo: trackInfos.ART_NAME,
-                album:         trackInfos.ALB_TITLE,
-                year:          parseInt(trackInfos.PHYSICAL_RELEASE_DATE),
-                copyright:     trackInfos.COPYRIGHT,
-                image:         {
-                    mime:        'jpeg',
-                    imageBuffer: coverBuffer
+        if (!fs.existsSync(DOWNLOAD_DIR + '/tempAlbumCovers')) {
+            fs.mkdirSync(DOWNLOAD_DIR + '/tempAlbumCovers');
+        }
+        
+        let albumCoverPath = DOWNLOAD_DIR + 'tempAlbumCovers/' + multipleWhitespacesToSingle(sanitize(trackInfos.SNG_TITLE)) + '.jpg';
+        let albumCoverFile = fs.createWriteStream(albumCoverPath);
+        
+        https.get(albumCoverUrl, function (albumCoverBuffer) {
+            let metadata = {
+                title:              trackInfos.SNG_TITLE,
+                artist:             trackInfos.ART_NAME,
+                album:              trackInfos.ALB_TITLE,
+                copyright:          trackInfos.COPYRIGHT,
+                performerInfo:      trackInfos.ART_NAME,
+                trackNumber:        trackInfos.TRACK_NUMBER,
+                partOfSet:          trackInfos.DISK_NUMBER,
+                ISRC:               trackInfos.ISRC,
+                encodingTechnology: 'DeezLoadr',
+                comment:            {
+                    text: 'Downloaded from Deezer with DeezLoadr. https://github.com/J05HI/DeezLoadr'
                 }
             };
             
-            if (!nodeID3.write(tags, filename)) {
-                // Error writing tags
+            if (trackInfos.PHYSICAL_RELEASE_DATE) {
+                metadata.year = trackInfos.PHYSICAL_RELEASE_DATE.slice(0, 4);
             }
             
-            downloadSpinner.text = 'Downloaded "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"';
-            downloadSpinner.succeed();
+            metadata.artist = '';
+            let first = true;
+            trackInfos.ARTISTS.forEach(function (trackArtist) {
+                if (first) {
+                    metadata.artist = trackArtist.ART_NAME;
+                    first = false;
+                } else {
+                    metadata.artist += ', ' + trackArtist.ART_NAME;
+                }
+            });
             
-            askForNewDownload();
+            if (trackInfos.SNG_CONTRIBUTORS) {
+                if (trackInfos.SNG_CONTRIBUTORS.composer) {
+                    metadata.composer = trackInfos.SNG_CONTRIBUTORS.composer.join(', ');
+                }
+                if (trackInfos.SNG_CONTRIBUTORS.musicpublisher) {
+                    metadata.publisher = trackInfos.SNG_CONTRIBUTORS.musicpublisher.join(', ');
+                }
+            }
+            
+            albumCoverBuffer.pipe(albumCoverFile);
+            
+            if (!albumCoverBuffer) {
+                metadata.image = undefined;
+                return;
+            }
+            
+            metadata.image = (albumCoverPath).replace(/\\/g, '/');
+            
+            setTimeout(function () {
+                if (!nodeID3.write(metadata, filename)) {
+                    downloadSpinner.warn('Failed writing ID3 tags to "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"');
+                } else {
+                    downloadSpinner.succeed('Downloaded "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"');
+                }
+                
+                askForNewDownload();
+            }, 50);
         });
     } catch (ex) {
+        downloadSpinner.warn('Failed writing ID3 tags to "' + trackInfos.ART_NAME + ' - ' + trackInfos.SNG_TITLE + '"');
+        
         askForNewDownload();
     }
 }
