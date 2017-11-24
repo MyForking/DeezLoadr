@@ -120,10 +120,10 @@ function selectMusicQuality() {
         }
     ]).then(function (answers) {
         switch (answers.musicQuality) {
-            case 'MP3  - 128 kbps':
+            case 'MP3  - 128  kbps':
                 selectedMusicQuality = musicQualities.MP3_128;
                 break;
-            case 'MP3  - 320 kbps':
+            case 'MP3  - 320  kbps':
                 selectedMusicQuality = musicQualities.MP3_320;
                 break;
             case 'FLAC - 1411 kbps':
