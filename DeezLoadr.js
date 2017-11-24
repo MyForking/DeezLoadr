@@ -87,7 +87,7 @@ const downloadSpinner = new ora({
     
     // App info
     console.log(chalk.cyan('╔════════════════════════════════════════════╗'));
-    console.log(chalk.cyan('║') + chalk.bold.yellow('              DeezLoadr v1.1.0              ') + chalk.cyan('║'));
+    console.log(chalk.cyan('║') + chalk.bold.yellow('              DeezLoadr v1.2.0              ') + chalk.cyan('║'));
     console.log(chalk.cyan('╠════════════════════════════════════════════╣'));
     console.log(chalk.cyan('║') + '          Made with love by J05HI           ' + chalk.cyan('║'));
     console.log(chalk.cyan('║') + '      Proudly released under the GPLv3      ' + chalk.cyan('║'));
